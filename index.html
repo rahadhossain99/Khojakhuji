@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>খোঁজখবর - একটি আধুনিক সার্চ ইঞ্জিন</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Hind Siliguri', 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .logo-gradient {
+            background: linear-gradient(90deg, #4f46e5, #ec4899, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .search-box-shadow { box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28); }
+        .search-box-shadow:hover { box-shadow: 0 2px 8px rgba(32, 33, 36, 0.35); }
+        .btn-primary { transition: all 0.2s ease-in-out; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-btn {
+            padding: 10px 16px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            color: #5f6368;
+            font-weight: 500;
+        }
+        .tab-btn.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+        .favicon { width: 20px; height: 20px; margin-right: 8px; border-radius: 4px; }
+        .image-card {
+            display: block;
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #f1f3f4;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .image-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        .image-thumbnail { width: 100%; height: 180px; object-fit: cover; }
+        .special-card { animation: fadeInZoom 0.5s ease-out; }
+        @keyframes fadeInZoom { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-gray-800">
+
+    <!-- Main Container -->
+    <div id="app-container" class="min-h-screen flex flex-col">
+
+        <!-- HOME PAGE VIEW -->
+        <div id="home-page" class="flex flex-col justify-center items-center flex-grow p-4">
+            <main class="text-center w-full max-w-2xl mx-auto">
+                <h1 class="text-7xl md:text-8xl font-bold mb-8 logo-gradient">খোঁজখবর</h1>
+                <div class="relative w-full mb-6">
+                    <div class="relative flex items-center w-full bg-white rounded-full search-box-shadow transition-shadow duration-300">
+                        <i data-lucide="search" class="w-5 h-5 text-gray-400 absolute left-5"></i>
+                        <input type="text" id="main-search-input" placeholder="এখানে কিছু খুঁজুন..." class="w-full h-14 pl-14 pr-5 text-lg bg-transparent rounded-full focus:outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-center items-center gap-4">
+                    <button id="main-search-btn" class="btn-primary bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700">অনুসন্ধান</button>
+                    <button id="lucky-btn" class="btn-primary bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg border border-gray-300 hover:bg-gray-200">ভাগ্য পরীক্ষা</button>
+                </div>
+            </main>
+        </div>
+
+        <!-- RESULTS PAGE VIEW -->
+        <div id="results-page" class="hidden flex-grow">
+            <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-10 border-b border-gray-200">
+                <div class="container mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
+                    <a href="#" onclick="showHomePage(event)" class="text-3xl font-bold logo-gradient">খোঁজখবর</a>
+                    <div class="relative flex items-center w-full max-w-xl flex-grow">
+                        <i data-lucide="search" class="w-5 h-5 text-gray-400 absolute left-4"></i>
+                        <input type="text" id="results-search-input" class="w-full h-11 pl-12 pr-20 text-base bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 border border-transparent focus:border-indigo-500 focus:bg-white">
+                        <button id="clear-search-btn" class="absolute right-14 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 hidden"><i data-lucide="x" class="w-5 h-5"></i></button>
+                        <button id="results-search-btn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-indigo-600 text-white rounded-full p-1.5 hover:bg-indigo-700">
+                            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                 <div class="container mx-auto px-4">
+                    <div id="results-tabs" class="flex border-b border-gray-200">
+                        <button class="tab-btn active" data-type="web"><i data-lucide="search" class="inline-block w-4 h-4 mr-2"></i>সব</button>
+                        <button class="tab-btn" data-type="image"><i data-lucide="image" class="inline-block w-4 h-4 mr-2"></i>ছবি</button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="container mx-auto p-4 md:p-6">
+                <div id="loading-indicator" class="text-center py-10 hidden">
+                    <div class="loader mx-auto"></div>
+                    <p class="mt-4 text-gray-600">ফলাফল লোড হচ্ছে...</p>
+                </div>
+                <div id="result-stats" class="text-sm text-gray-500 mb-4"></div>
+                
+                <div id="search-results-area" class="max-w-3xl mx-auto">
+                    <!-- Results will be injected here -->
+                </div>
+                
+                <div id="pagination-controls" class="flex justify-between items-center mt-10 max-w-3xl mx-auto"></div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const API_KEY = 'AIzaSyBtslEA0zT9Z9EcjTMdxlJUh17jL_xjZIU';
+        const SEARCH_ENGINE_ID = '52bc47396493e4246';
+        const RESULTS_PER_PAGE = 10;
+
+        // --- DOM ELEMENTS ---
+        const homePage = document.getElementById('home-page');
+        const resultsPage = document.getElementById('results-page');
+        const mainSearchInput = document.getElementById('main-search-input');
+        const mainSearchBtn = document.getElementById('main-search-btn');
+        const luckyBtn = document.getElementById('lucky-btn');
+        const resultsSearchInput = document.getElementById('results-search-input');
+        const resultsSearchBtn = document.getElementById('results-search-btn');
+        const clearSearchBtn = document.getElementById('clear-search-btn');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const resultStats = document.getElementById('result-stats');
+        const searchResultsArea = document.getElementById('search-results-area');
+        const paginationControls = document.getElementById('pagination-controls');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+
+        let currentPage = 1;
+        let activeSearchType = 'web';
+
+        // --- SPECIAL KEYWORDS ---
+        const creatorKeywords = ["তোমাকে কে তৈরি করেছে", "কে তোমাকে বানিয়েছে", "তোমার স্রষ্টা কে", "who made you", "who created you", "তোমার মালিক কে", "tomake k toiri koreche"];
+        const xxxKeyword = "xxx";
+        const badWords = ["fuck", "bitch", "asshole", "মাঙ্গি", "বাল", "حرامي"];
+
+        // --- INITIALIZATION ---
+        lucide.createIcons();
+
+        // --- CORE FUNCTIONS ---
+        function showResultsPage() {
+            homePage.classList.add('hidden');
+            resultsPage.classList.remove('hidden');
+        }
+
+        function showHomePage(event) {
+            if(event) event.preventDefault();
+            resultsPage.classList.add('hidden');
+            homePage.classList.remove('hidden');
+            mainSearchInput.value = '';
+        }
+
+        function handleSearch(page) {
+            const queryFromHome = mainSearchInput.value.trim();
+            const queryFromResults = resultsSearchInput.value.trim();
+            
+            // Determine the current query. Give priority to the results page input if it's visible.
+            const query = resultsPage.classList.contains('hidden') ? queryFromHome : queryFromResults;
+            const normalizedQuery = query.toLowerCase();
+
+            // BUG FIX: Clear previous results immediately
+            clearResults();
+
+            if (!normalizedQuery) {
+                // If the search is empty, we don't need to show an alert, 
+                // just ensure the results area is clear.
+                return;
+            }
+            
+            // Sync both search inputs
+            mainSearchInput.value = query;
+            resultsSearchInput.value = query;
+            toggleClearButton();
+
+            currentPage = page;
+
+            // Check for special keywords
+            if (creatorKeywords.some(keyword => normalizedQuery.includes(keyword.toLowerCase()))) {
+                displayCreatorMessage();
+                return;
+            }
+            if (normalizedQuery === xxxKeyword) {
+                displayXxxWarning();
+                return;
+            }
+            if (badWords.some(word => normalizedQuery.includes(word))) {
+                displayGeneralWarning();
+                return;
+            }
+
+            performSearch(query, (page - 1) * RESULTS_PER_PAGE + 1);
+        }
+        
+        async function handleLuckySearch() {
+            const query = mainSearchInput.value.trim();
+            if (!query) {
+                alert("অনুগ্রহ করে খোঁজার জন্য কিছু লিখুন।");
+                return;
+            }
+            try {
+                const url = `https://www.googleapis.com/customsearch/v1?key=${API_KEY}&cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.items && data.items.length > 0) {
+                    window.location.href = data.items[0].link;
+                } else {
+                    handleSearch(1);
+                }
+            } catch (error) {
+                console.error('Error fetching lucky search:', error);
+                alert("একটি সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।");
+            }
+        }
+
+        async function performSearch(query, startIndex) {
+            showResultsPage();
+            loadingIndicator.classList.remove('hidden');
+
+            let searchUrl = `https://www.googleapis.com/customsearch/v1?key=${API_KEY}&cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&start=${startIndex}&num=${RESULTS_PER_PAGE}`;
+            if (activeSearchType === 'image') {
+                searchUrl += '&searchType=image';
+            }
+
+            try {
+                const response = await fetch(searchUrl);
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                console.error('Error fetching search results:', error);
+                displayErrorMessage("সার্চ করতে একটি সমস্যা হয়েছে। আপনার ইন্টারনেট সংযোগ পরীক্ষা করুন।");
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+        
+        // --- DISPLAY & UI FUNCTIONS ---
+
+        function clearResults() {
+            loadingIndicator.classList.add('hidden');
+            searchResultsArea.innerHTML = '';
+            resultStats.innerHTML = '';
+            paginationControls.innerHTML = '';
+        }
+
+        function displayResults(data) {
+             if (activeSearchType === 'web') {
+                displayWebResults(data);
+            } else {
+                displayImageResults(data);
+            }
+        }
+
+        function displayCreatorMessage() {
+            showResultsPage();
+            const messageHtml = `
+                <div class="special-card bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-8 rounded-2xl shadow-2xl text-center">
+                    <h2 class="text-5xl font-bold mb-4">😎</h2>
+                    <h3 class="text-2xl font-semibold mb-2">এই অসাধারণ জিনিসটি তৈরি করেছেন</h3>
+                    <p class="text-4xl font-bold logo-gradient" style="background: linear-gradient(90deg, #fde047, #fca5a5, #a5b4fc); -webkit-background-clip: text;">রাহাত হোসেন</p>
+                    <p class="mt-4 text-indigo-200">তিনি শুধু একজন ডেভেলপার নন, তিনি একজন বস।</p>
+                </div>`;
+            searchResultsArea.innerHTML = messageHtml;
+        }
+
+        function displayXxxWarning() {
+            showResultsPage();
+            const messageHtml = `
+                <div class="special-card bg-red-100 border-l-4 border-red-500 text-red-800 p-6 rounded-lg shadow-lg">
+                    <div class="flex items-center">
+                        <i data-lucide="alert-octagon" class="w-8 h-8 mr-4"></i>
+                        <div>
+                            <h3 class="text-xl font-bold">থামো!</h3>
+                            <p class="mt-2 text-lg">কিরে মাঙ্গের নাতি, ভালো হয়ে যা। এসব কী খোঁজাখুঁজি করিস?</p>
+                        </div>
+                    </div>
+                </div>`;
+            searchResultsArea.innerHTML = messageHtml;
+            lucide.createIcons();
+        }
+
+        function displayGeneralWarning() {
+            showResultsPage();
+            const messageHtml = `
+                <div class="special-card bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-6 rounded-lg shadow-lg">
+                    <div class="flex items-center">
+                        <i data-lucide="alert-triangle" class="w-8 h-8 mr-4"></i>
+                        <div>
+                            <h3 class="text-xl font-bold">সতর্কবার্তা</h3>
+                            <p class="mt-2 text-lg">অনুগ্রহ করে ভদ্রোচিত শব্দ ব্যবহার করুন। এই ধরনের কন্টেন্ট এখানে অনুমোদিত নয়।</p>
+                        </div>
+                    </div>
+                </div>`;
+            searchResultsArea.innerHTML = messageHtml;
+            lucide.createIcons();
+        }
+        
+        function displayErrorMessage(message) {
+             searchResultsArea.innerHTML = `<p class="text-red-500 p-4 bg-red-100 rounded-lg">${message}</p>`;
+        }
+        
+        function displayNotFoundMessage(query) {
+             const messageHtml = `
+                <div class="text-center p-8 bg-white rounded-lg border">
+                    <i data-lucide="search-x" class="w-16 h-16 mx-auto text-gray-400"></i>
+                    <h3 class="mt-4 text-xl font-semibold">" ${query} " এর জন্য কোনো ফলাফল পাওয়া যায়নি।</h3>
+                    <p class="mt-2 text-gray-500">আপনার বানান পরীক্ষা করুন অথবা অন্য কোনো শব্দ দিয়ে চেষ্টা করুন।</p>
+                </div>`;
+            searchResultsArea.innerHTML = messageHtml;
+            lucide.createIcons();
+        }
+
+        function displayWebResults(data) {
+            if (data.items && data.items.length > 0) {
+                const totalResults = data.searchInformation.totalResults;
+                const searchTime = data.searchInformation.formattedSearchTime;
+                resultStats.textContent = `প্রায় ${parseInt(totalResults).toLocaleString('bn-BD')} টি ফলাফল (${searchTime} সেকেন্ড)`;
+
+                let resultsHtml = '';
+                data.items.forEach(item => {
+                    resultsHtml += `
+                        <div class="mb-6 bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+                            <div class="flex items-center mb-2">
+                                <img src="https://www.google.com/s2/favicons?sz=32&domain_url=${item.displayLink}" alt="favicon" class="favicon" onerror="this.style.display='none'">
+                                <span class="text-sm text-gray-800 font-medium">${item.displayLink}</span>
+                            </div>
+                            <a href="${item.link}" target="_blank" class="text-xl text-indigo-700 hover:underline font-semibold mb-1 block">${item.title}</a>
+                            <p class="text-gray-600 leading-relaxed">${item.snippet}</p>
+                        </div>`;
+                });
+                searchResultsArea.innerHTML = resultsHtml;
+                renderPagination(data.queries);
+            } else {
+                displayNotFoundMessage(resultsSearchInput.value);
+            }
+        }
+
+        function displayImageResults(data) {
+            if (data.items && data.items.length > 0) {
+                const totalResults = data.searchInformation.totalResults;
+                const searchTime = data.searchInformation.formattedSearchTime;
+                resultStats.textContent = `প্রায় ${parseInt(totalResults).toLocaleString('bn-BD')} টি ছবি (${searchTime} সেকেন্ড)`;
+
+                let resultsHtml = '<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">';
+                data.items.forEach(item => {
+                    resultsHtml += `
+                        <a href="${item.image.contextLink}" target="_blank" class="image-card group">
+                            <img src="${item.link}" alt="${item.title}" class="image-thumbnail" loading="lazy">
+                            <div class="p-2"><p class="text-xs text-gray-600 truncate group-hover:underline">${item.title}</p></div>
+                        </a>`;
+                });
+                resultsHtml += '</div>';
+                searchResultsArea.innerHTML = resultsHtml;
+                renderPagination(data.queries);
+            } else {
+                displayNotFoundMessage(resultsSearchInput.value);
+            }
+        }
+        
+        function renderPagination(queries) {
+            let prevButton = queries.previousPage ? `<button onclick="handleSearch(${currentPage - 1})" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100"><i data-lucide="arrow-left" class="w-4 h-4"></i>পূর্ববর্তী</button>` : `<div class="w-32"></div>`;
+            let nextButton = queries.nextPage ? `<button onclick="handleSearch(${currentPage + 1})" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-100">পরবর্তী<i data-lucide="arrow-right" class="w-4 h-4"></i></button>` : `<div class="w-32"></div>`;
+            const pageIndicator = `<span class="text-gray-700 font-medium">পেজ ${currentPage.toLocaleString('bn-BD')}</span>`;
+            paginationControls.innerHTML = `${prevButton} ${pageIndicator} ${nextButton}`;
+            lucide.createIcons();
+        }
+        
+        function toggleClearButton() {
+            if (resultsSearchInput.value) {
+                clearSearchBtn.classList.remove('hidden');
+            } else {
+                clearSearchBtn.classList.add('hidden');
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        mainSearchBtn.addEventListener('click', () => handleSearch(1));
+        mainSearchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSearch(1); });
+        resultsSearchBtn.addEventListener('click', () => handleSearch(1));
+        resultsSearchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSearch(1); });
+        luckyBtn.addEventListener('click', handleLuckySearch);
+        
+        resultsSearchInput.addEventListener('input', toggleClearButton);
+        clearSearchBtn.addEventListener('click', () => {
+            resultsSearchInput.value = '';
+            mainSearchInput.value = ''; // Also clear home input
+            toggleClearButton();
+            resultsSearchInput.focus();
+            clearResults(); // Clear results when 'x' is clicked
+        });
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeSearchType = btn.dataset.type;
+                if (resultsSearchInput.value.trim()) {
+                    handleSearch(1);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
